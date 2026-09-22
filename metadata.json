@@ -1,0 +1,6 @@
+{
+  "name": "Conductor Logística",
+  "description": "App para conductores de logística para recibir nuevas recolecciones, gestionar entregas y enlazarse en tiempo real con la Torre de Control.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
