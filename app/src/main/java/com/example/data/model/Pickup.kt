@@ -53,8 +53,8 @@ data class Pickup(
 
 data class DriverProfile(
     val id: String = "DRV-8821",
-    val name: String = "Carlos Mendoza",
-    val email: String = "sekoner0121@gmail.com",
+    val name: String = "Conductor 1",
+    val email: String = "conductor1@example.invalid",
     val phone: String = "+52 55 9876 5432",
     val unitId: String = "UNIDAD-504",
     val licensePlate: String = "LC-884-TX",

@@ -25,8 +25,8 @@ class LogisticsRepository(private val context: Context) {
     private val _driverProfile = MutableStateFlow(
         DriverProfile(
             id = "DRV-9942",
-            name = "Carlos Mendoza",
-            email = "sekoner0121@gmail.com",
+            name = "Conductor 1",
+            email = "conductor1@example.invalid",
             phone = "+52 55 4912 3340",
             unitId = "UNIDAD-504",
             licensePlate = "LC-884-TX",
@@ -406,21 +406,6 @@ class LogisticsRepository(private val context: Context) {
         } else {
             _authError.value = result.exceptionOrNull()?.localizedMessage ?: "Credenciales no válidas"
             false
-        }
-    }
-
-    fun loginDirectDriver(email: String = "sekoner0121@gmail.com", name: String = "Carlos Mendoza", unitId: String = "UNIDAD-504") {
-        _authError.value = null
-        _driverProfile.update {
-            it.copy(
-                email = email,
-                name = name,
-                unitId = unitId
-            )
-        }
-        _isAuthenticated.value = true
-        scope.launch {
-            firebaseManager.saveDriverPing(_driverProfile.value)
         }
     }
 

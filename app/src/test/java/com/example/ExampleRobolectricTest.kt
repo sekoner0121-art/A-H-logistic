@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.example.data.model.PickupStatus
 import com.example.data.repository.LogisticsRepository
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -40,15 +41,12 @@ class ExampleRobolectricTest {
   }
 
   @Test
-  fun `repository supports driver login and logout`() {
+  fun `repository requires authentication and can log out`() {
     val context = ApplicationProvider.getApplicationContext<Context>()
     val repository = LogisticsRepository(context)
 
-    repository.loginDirectDriver("sekoner0121@gmail.com", "Carlos Mendoza", "UNIDAD-504")
-    assertTrue("Driver should be authenticated", repository.isAuthenticated.value)
-    assertEquals("sekoner0121@gmail.com", repository.driverProfile.value.email)
-
+    assertFalse("Driver must not be authenticated without credentials", repository.isAuthenticated.value)
     repository.logout()
-    assertTrue("Driver should be logged out", !repository.isAuthenticated.value)
+    assertFalse("Driver should be logged out", repository.isAuthenticated.value)
   }
 }

@@ -205,12 +205,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     val idToken = googleIdTokenCredential.idToken
                     repository.loginWithGoogleToken(idToken)
                 } else {
-                    // Fallback to identified driver sekoner0121@gmail.com
-                    repository.loginDirectDriver("sekoner0121@gmail.com", "Carlos Mendoza", "UNIDAD-504")
+                    _authError.value = "No se recibió una credencial válida de Google."
                 }
             } catch (e: Exception) {
-                // If Google Play Services is missing OAuth config or in emulator environment, authenticate directly as driver
-                repository.loginDirectDriver("sekoner0121@gmail.com", "Carlos Mendoza", "UNIDAD-504")
+                _authError.value = e.localizedMessage ?: "No se pudo iniciar sesión con Google."
             } finally {
                 _isAuthenticating.value = false
             }
@@ -222,18 +220,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _isAuthenticating.value = true
             try {
                 val success = repository.loginWithEmail(email, pass)
-                if (!success) {
-                    // If demo user or offline Firebase, allow instant driver access
-                    repository.loginDirectDriver(email, "Conductor " + email.substringBefore("@"), "UNIDAD-504")
-                }
+                if (!success && _authError.value.isNullOrBlank()) _authError.value = "No se pudo validar la cuenta."
             } finally {
                 _isAuthenticating.value = false
             }
         }
-    }
-
-    fun loginDirectDriver(email: String = "sekoner0121@gmail.com", name: String = "Carlos Mendoza", unitId: String = "UNIDAD-504") {
-        repository.loginDirectDriver(email, name, unitId)
     }
 
     fun logout() {

@@ -16,3 +16,6 @@
 local.properties
 .env
 debug.keystore
+dispatch/node_modules/
+dispatch/.wrangler/
+dispatch/.dev.vars*

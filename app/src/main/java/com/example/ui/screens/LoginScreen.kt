@@ -78,8 +78,8 @@ fun LoginScreen(
     val isAuthenticating by viewModel.isAuthenticating.collectAsStateWithLifecycle()
     val authError by viewModel.authError.collectAsStateWithLifecycle()
 
-    var email by remember { mutableStateOf("sekoner0121@gmail.com") }
-    var password by remember { mutableStateOf("123456") }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
 
     Box(
@@ -361,29 +361,6 @@ fun LoginScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // Direct Driver Demo Access Button
-                    OutlinedButton(
-                        onClick = {
-                            viewModel.loginDirectDriver("sekoner0121@gmail.com", "Carlos Mendoza", "UNIDAD-504")
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .testTag("quick_driver_access_button"),
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, UberDarkBorder),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = UberWhite
-                        )
-                    ) {
-                        Text(
-                            text = "Acceso Rápido: sekoner0121@gmail.com",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
                 }
             }
 
