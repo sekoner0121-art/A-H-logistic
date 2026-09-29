@@ -18,7 +18,7 @@ La ubicación requiere permiso del navegador y una dirección HTTPS. Para este M
 
 Se necesita una cuenta de Cloudflare con **Workers Free** y acceso al navegador para autorizar Wrangler mediante OAuth. La publicación usa el subdominio gratuito `workers.dev`; no hace falta comprar dominio. No pongas contraseñas ni secretos en GitHub, en este archivo o en el chat.
 
-También se requiere Node.js y npm instalados en la computadora desde donde se publica.
+También se requiere Node.js y npm o pnpm instalados en la computadora desde donde se publica.
 
 Desde esta carpeta, ejecuta:
 
@@ -27,12 +27,16 @@ npx wrangler@latest login
 npx wrangler@latest d1 create ah-logistica
 ```
 
+Si ya usas pnpm, reemplaza `npx wrangler@latest` por `pnpm --config.node-linker=hoisted dlx wrangler@latest`.
+
 Wrangler mostrará un `database_id`. Pégalo en `database_id` dentro de `wrangler.jsonc` y después aplica el esquema:
 
 ```powershell
 npx wrangler@latest d1 migrations apply ah-logistica --remote
 npx wrangler@latest deploy
 ```
+
+Antes del primer despliegue, configura un subdominio de cuenta disponible en **Workers & Pages → Your subdomain**. Por ejemplo, `ah-logistica-ags` produce la dirección `ah-logistica-operacion.ah-logistica-ags.workers.dev`. El prefijo es de toda la cuenta; cambiar uno existente afecta las direcciones `workers.dev` de sus otros Workers.
 
 El primer despliegue creará el Worker. Luego carga estos secretos con Wrangler; cada comando solicita el valor sin guardarlo en el repositorio:
 
@@ -44,7 +48,7 @@ npx wrangler@latest secret put SETUP_CODE
 
 Genera los tres valores aleatorios y distintos con un administrador de contraseñas. Para `SETUP_CODE`, conserva el valor temporal hasta completar el primer acceso. Wrangler publicará automáticamente una nueva versión al guardar cada secreto.
 
-Abre la URL `https://ah-logistica-operacion.<tu-subdominio>.workers.dev` que indique Wrangler. La primera pantalla permite crear las cuentas privadas. Los usuarios son `control1`, `conductor1` y `conductor2`; elige contraseñas de al menos 12 caracteres y conserva las claves en un administrador de contraseñas. El formulario de instalación deja de estar disponible cuando existen esas tres cuentas.
+Abre la URL `https://ah-logistica-operacion.ah-logistica-ags.workers.dev`. La primera pantalla permite crear las cuentas privadas. Los usuarios son `control1`, `conductor1` y `conductor2`; elige contraseñas de al menos 12 caracteres y conserva las claves en un administrador de contraseñas. El formulario de instalación deja de estar disponible cuando existen esas tres cuentas.
 
 ## Operación
 
