@@ -46,7 +46,7 @@ npx wrangler@latest secret put PASSWORD_PEPPER
 npx wrangler@latest secret put SETUP_CODE
 ```
 
-Genera los tres valores aleatorios y distintos con un administrador de contraseñas. Para `SETUP_CODE`, conserva el valor temporal hasta completar el primer acceso. Wrangler publicará automáticamente una nueva versión al guardar cada secreto.
+Genera los tres valores aleatorios y distintos con un administrador de contraseñas. Conserva `SETUP_CODE` en un lugar privado: además de la instalación inicial, sirve para una única recuperación de emergencia de las dos cuentas de conductor. Wrangler publicará automáticamente una nueva versión al guardar cada secreto.
 
 Abre la URL `https://ah-logistica-operacion.ah-logistica-ags.workers.dev`. La primera pantalla permite crear las cuentas privadas. Los usuarios son `control1`, `conductor1` y `conductor2`; elige contraseñas de al menos 12 caracteres y conserva las claves en un administrador de contraseñas. El formulario de instalación deja de estar disponible cuando existen esas tres cuentas.
 
@@ -56,6 +56,7 @@ Abre la URL `https://ah-logistica-operacion.ah-logistica-ags.workers.dev`. La pr
 2. El conductor inicia sesión en `/conductor`, acepta la orden y activa **Compartir ubicación**.
 3. En ruta, el conductor marca el inicio del recorrido y después la entrega. Puede apagar el GPS al finalizar.
 4. Logística ve los estados y la última ubicación en el mapa.
+5. Si un conductor olvida su clave, la torre abre **Restablecer clave** junto a su nombre y le asigna una nueva de al menos 12 caracteres. El cambio cierra las sesiones abiertas de ese conductor.
 
 El MVP no calcula tarifas, no cobra, no factura, no geocodifica direcciones ni ofrece navegación giro a giro. Los datos de origen y destino se capturan como texto. OpenStreetMap aporta las teselas del mapa y requiere conexión a internet.
 

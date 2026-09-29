@@ -129,13 +129,15 @@ button:disabled { cursor: wait; opacity: .65; }
 .panel-heading.compact { padding-bottom: 9px; }
 .driver-count { color: #8b9890; font: 700 11px Manrope, sans-serif; }
 .drivers-list { padding: 0 14px; }
-.driver-row { display: grid; grid-template-columns: 8px minmax(80px, 1fr) minmax(95px, 1.3fr); align-items: center; gap: 8px; min-height: 56px; border-top: 1px solid #eef1ef; }
+.driver-row { display: grid; grid-template-columns: 8px minmax(80px, 1fr) minmax(95px, 1.3fr) auto; align-items: center; gap: 8px; min-height: 56px; border-top: 1px solid #eef1ef; }
 .driver-status-dot { width: 7px; height: 7px; border-radius: 50%; background: #aab4ae; }
 .driver-status-dot.online { background: #8bc34a; box-shadow: 0 0 0 3px #eff7e8; }
 .driver-row-main, .driver-row-meta { display: flex; min-width: 0; flex-direction: column; gap: 4px; }
 .driver-row-main b { overflow: hidden; color: #334139; font-size: 10px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .driver-row-main small, .driver-row-meta small { overflow: hidden; color: #909a94; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
 .driver-row-meta { text-align: right; }
+.driver-reset-button { padding: 6px 8px; border: 1px solid #dfe8d8; border-radius: 6px; color: #527744; background: #f7faf4; font-size: 8px; font-weight: 700; white-space: nowrap; }
+.driver-reset-button:hover { border-color: #b9d39e; background: #eff7e7; }
 .empty-inline { padding: 17px 9px; color: #8d9992; font-size: 10px; text-align: center; }
 
 .orders-panel { margin-top: 16px; }
@@ -323,7 +325,11 @@ button:disabled { cursor: wait; opacity: .65; }
   .dispatch-column { display: flex; }
   .dispatch-panel { padding-bottom: 14px; }
   .dispatch-form { padding: 0 14px; }
-  .drivers-panel { display: none; }
+  .drivers-panel { display: block; }
+  .drivers-list { padding: 0 12px; }
+  .driver-row { grid-template-columns: 8px minmax(80px, 1fr) auto; gap: 7px; padding: 8px 0; }
+  .driver-row-meta { grid-column: 2; grid-row: 2; text-align: left; }
+  .driver-reset-button { grid-column: 3; grid-row: 1 / span 2; padding: 7px 9px; }
   .orders-panel { margin-top: 12px; }
   .orders-list { padding: 0 13px 8px; }
   .order-row { grid-template-columns: minmax(0, 1fr) auto; gap: 5px 10px; padding: 10px 0; }

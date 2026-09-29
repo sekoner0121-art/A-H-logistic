@@ -80,6 +80,7 @@ async function signToken(user, env) {
   const payload = bytesToBase64Url(encoder.encode(JSON.stringify({
     sub: user.id,
     exp: Math.floor(Date.now() / 1000) + SESSION_SECONDS,
+    v: Number(user.authVersion || 1),
   })));
   const signature = await crypto.subtle.sign('HMAC', await hmacKey(env.SESSION_SECRET), encoder.encode(payload));
   return payload + '.' + bytesToBase64Url(signature);
@@ -95,9 +96,11 @@ async function currentUser(request, env) {
     if (!valid) return null;
     const payload = JSON.parse(new TextDecoder().decode(base64UrlToBytes(parts[0])));
     if (!payload.sub || payload.exp <= Math.floor(Date.now() / 1000)) return null;
-    return await env.DB.prepare(
-      'SELECT id, username, display_name AS displayName, role, active FROM users WHERE id = ? AND active = 1'
+    const user = await env.DB.prepare(
+      'SELECT id, username, display_name AS displayName, role, active, auth_version AS authVersion FROM users WHERE id = ? AND active = 1'
     ).bind(payload.sub).first();
+    if (!user || Number(payload.v || 1) !== Number(user.authVersion || 1)) return null;
+    return user;
   } catch {
     return null;
   }
@@ -218,7 +221,7 @@ async function handleApi(request, env) {
     const password = typeof body.password === 'string' ? body.password : '';
     const requestedRole = body.role === 'control' ? 'control' : body.role === 'driver' ? 'driver' : '';
     const user = await env.DB.prepare(
-      'SELECT id, username, display_name AS displayName, role, password_salt AS passwordSalt, password_hash AS passwordHash, active FROM users WHERE username = ?'
+      'SELECT id, username, display_name AS displayName, role, password_salt AS passwordSalt, password_hash AS passwordHash, active, auth_version AS authVersion FROM users WHERE username = ?'
     ).bind(username).first();
     const calculated = user ? await passwordHash(password, user.passwordSalt, env) : '';
     if (!user || !user.active || user.role !== requestedRole || !equalText(calculated, user.passwordHash)) {
@@ -230,6 +233,40 @@ async function handleApi(request, env) {
     return json({ user: publicUser(user) }, 200, {
       'Set-Cookie': 'ah_session=' + encodeURIComponent(token) + '; Path=/; HttpOnly; SameSite=Strict; Secure; Max-Age=' + SESSION_SECONDS,
     });
+  }
+
+  if (pathname === '/api/recover-initial-drivers' && method === 'POST') {
+    if (!env.SETUP_CODE || !env.PASSWORD_PEPPER) return json({ error: 'La recuperación no está configurada.' }, 503);
+    const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+    const now = Math.floor(Date.now() / 1000);
+    const attempts = await env.DB.prepare('SELECT blocked_until AS blockedUntil FROM login_attempts WHERE ip = ?').bind(ip).first();
+    if (attempts && attempts.blockedUntil > now) return json({ error: 'Demasiados intentos. Espera 15 minutos.' }, 429);
+    const body = await readJson(request);
+    if (!equalText(body.setupCode, env.SETUP_CODE)) {
+      await recordLoginFailure(request, env);
+      return json({ error: 'Código de recuperación incorrecto.' }, 401);
+    }
+    const alreadyUsed = await env.DB.prepare('SELECT recovery_id FROM password_recovery_events WHERE recovery_id = ?').bind('initial-driver-reset').first();
+    if (alreadyUsed) return json({ error: 'El código de recuperación inicial ya fue utilizado.' }, 409);
+    const passwords = [body.driver1Password, body.driver2Password];
+    if (passwords.some(value => typeof value !== 'string' || value.length < 12 || value.length > 128)) {
+      return json({ error: 'Cada contraseña debe tener entre 12 y 128 caracteres.' }, 400);
+    }
+    const drivers = await env.DB.prepare("SELECT id FROM users WHERE id IN ('driver-1', 'driver-2') AND role = 'driver' AND active = 1").all();
+    if (!drivers.results || drivers.results.length !== 2) return json({ error: 'Las dos cuentas de conductor deben estar configuradas.' }, 409);
+    const salts = [randomSalt(), randomSalt()];
+    const hashes = await Promise.all(passwords.map((password, index) => passwordHash(password, salts[index], env)));
+    try {
+      await env.DB.batch([
+        env.DB.prepare('INSERT INTO password_recovery_events (recovery_id, used_at) VALUES (?, ?)').bind('initial-driver-reset', new Date().toISOString()),
+        env.DB.prepare("UPDATE users SET password_salt = ?, password_hash = ?, auth_version = auth_version + 1 WHERE id = 'driver-1' AND role = 'driver' AND active = 1").bind(salts[0], hashes[0]),
+        env.DB.prepare("UPDATE users SET password_salt = ?, password_hash = ?, auth_version = auth_version + 1 WHERE id = 'driver-2' AND role = 'driver' AND active = 1").bind(salts[1], hashes[1]),
+      ]);
+    } catch {
+      return json({ error: 'No se pudieron restablecer las cuentas. Recarga e inténtalo de nuevo.' }, 409);
+    }
+    await env.DB.prepare('DELETE FROM login_attempts WHERE ip = ?').bind(ip).run();
+    return json({ ok: true });
   }
 
   if (pathname === '/api/logout' && method === 'POST') {
@@ -256,6 +293,22 @@ async function handleApi(request, env) {
     const salt = randomSalt();
     const hash = await passwordHash(nextPassword, salt, env);
     await env.DB.prepare('UPDATE users SET password_salt = ?, password_hash = ? WHERE id = ?').bind(salt, hash, user.id).run();
+    return json({ ok: true });
+  }
+
+  const driverPasswordMatch = pathname.match(/^\/api\/drivers\/(driver-1|driver-2)\/password$/);
+  if (driverPasswordMatch && method === 'POST') {
+    if (user.role !== 'control') return json({ error: 'Solo la torre de control puede restablecer claves.' }, 403);
+    if (!env.PASSWORD_PEPPER) return json({ error: 'El acceso aún no está configurado.' }, 503);
+    const body = await readJson(request);
+    const nextPassword = typeof body.newPassword === 'string' ? body.newPassword : '';
+    if (nextPassword.length < 12 || nextPassword.length > 128) return json({ error: 'La nueva contraseña debe tener entre 12 y 128 caracteres.' }, 400);
+    const driverId = driverPasswordMatch[1];
+    const salt = randomSalt();
+    const hash = await passwordHash(nextPassword, salt, env);
+    const result = await env.DB.prepare("UPDATE users SET password_salt = ?, password_hash = ?, auth_version = auth_version + 1 WHERE id = ? AND role = 'driver' AND active = 1")
+      .bind(salt, hash, driverId).run();
+    if (!result.meta || result.meta.changes !== 1) return json({ error: 'No encontramos esa cuenta de conductor.' }, 404);
     return json({ ok: true });
   }
 

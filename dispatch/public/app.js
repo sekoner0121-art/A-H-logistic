@@ -424,6 +424,7 @@
         ' <span class="driver-status-dot ' + (online ? 'online' : '') + '"></span>',
         ' <span class="driver-row-main"><b>' + escapeHtml(driver.displayName) + '</b><small>' + escapeHtml(online ? 'En línea · ' + relativeTime(driver.updatedAt) : (driver.updatedAt ? relativeTime(driver.updatedAt) : 'Sin conexión')) + '</small></span>',
         ' <span class="driver-row-meta"><small>' + escapeHtml(position + accuracy) + '</small><small>' + Number(driver.activeOrders || 0) + ' servicios activos</small></span>',
+        ' <button class="driver-reset-button" type="button" data-action="reset-driver-password" data-id="' + escapeHtml(driver.id) + '" aria-label="Restablecer contraseña de ' + escapeHtml(driver.displayName) + '">Restablecer clave</button>',
         '</div>',
       ].join('');
     }).join('') || '<div class="empty-inline">No hay conductores activos.</div>';
@@ -662,6 +663,25 @@
     if (input) input.focus();
   }
 
+  function openDriverPasswordModal(driver) {
+    if (!driver || currentUser?.role !== 'control') return;
+    modalRoot.innerHTML = [
+      '<div class="modal-backdrop"><section class="password-modal" role="dialog" aria-modal="true" aria-labelledby="driver-password-title">',
+      '<div class="modal-mark">⌁</div><div class="eyebrow">TORRE DE CONTROL</div>',
+      '<h2 id="driver-password-title">Restablecer clave</h2>',
+      '<p>Asigna una contraseña nueva para ' + escapeHtml(driver.displayName) + '. Necesitará volver a iniciar sesión.</p>',
+      '<form id="driver-reset-form" class="form-stack" data-driver-id="' + escapeHtml(driver.id) + '">',
+      '<label>Nueva contraseña<input name="newPassword" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label>',
+      '<label>Confirma la nueva contraseña<input name="confirmPassword" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label>',
+      '<div class="form-error" id="driver-reset-error" role="alert"></div>',
+      '<button class="button button-dark button-wide" type="submit">Restablecer contraseña <span>→</span></button>',
+      '<button class="modal-cancel" type="button" data-action="close-password">Cancelar</button>',
+      '</form></section></div>',
+    ].join('');
+    const input = modalRoot.querySelector('[name="newPassword"]');
+    if (input) input.focus();
+  }
+
   async function handleSubmit(event) {
     const form = event.target;
     if (form.id === 'setup-form') {
@@ -769,6 +789,32 @@
         if (submit.isConnected) submit.disabled = false;
       }
     }
+
+    if (form.id === 'driver-reset-form') {
+      event.preventDefault();
+      const errorNode = document.getElementById('driver-reset-error');
+      const formData = new FormData(form);
+      const next = String(formData.get('newPassword') || '');
+      if (next !== String(formData.get('confirmPassword') || '')) {
+        errorNode.textContent = 'Las contraseñas nuevas no coinciden.';
+        return;
+      }
+      const submit = form.querySelector('button[type="submit"]');
+      submit.disabled = true;
+      errorNode.textContent = '';
+      try {
+        await api('/api/drivers/' + encodeURIComponent(form.dataset.driverId) + '/password', {
+          method: 'POST',
+          body: JSON.stringify({ newPassword: next }),
+        });
+        modalRoot.innerHTML = '';
+        toast('Clave restablecida. El conductor deberá iniciar sesión otra vez.', 'success');
+      } catch (error) {
+        errorNode.textContent = error.message;
+      } finally {
+        if (submit.isConnected) submit.disabled = false;
+      }
+    }
   }
 
   async function handleClick(event) {
@@ -779,6 +825,10 @@
     if (action === 'reload') location.reload();
     if (action === 'password') openPasswordModal(false);
     if (action === 'close-password') modalRoot.innerHTML = '';
+    if (action === 'reset-driver-password') {
+      const driver = snapshot.drivers.find(item => item.id === target.dataset.id);
+      openDriverPasswordModal(driver);
+    }
     if (action === 'refresh') refreshData(false).catch(error => toast(error.message, 'error'));
     if (action === 'tracking-start') startTracking();
     if (action === 'tracking-stop') stopTracking();
